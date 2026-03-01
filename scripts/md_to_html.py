@@ -52,12 +52,19 @@ def try_import_markdown():
 
 
 def basic_md_to_html(md_text: str) -> str:
-    """Basic markdown converter using regex (no external deps)."""
+    """Basic markdown converter using regex (no external deps).
+
+    Supports a minimal subset of Markdown plus fenced code blocks (``` ... ```).
+    WeChat has limited HTML support, so code blocks are rendered as a <p><code>...
+    with <br/> line breaks.
+    """
     lines = md_text.split("\n")
     html_lines = []
     in_ul = False
     in_ol = False
     in_blockquote = False
+    in_codeblock = False
+    code_lines = []
 
     def close_lists():
         nonlocal in_ul, in_ol
@@ -80,8 +87,47 @@ def basic_md_to_html(md_text: str) -> str:
         text = re.sub(r'\[(.+?)\]\((.+?)\)', r'<a href="\2">\1</a>', text)
         return text
 
+    def escape_html(s: str) -> str:
+        return (s.replace('&', '&amp;')
+                 .replace('<', '&lt;')
+                 .replace('>', '&gt;'))
+
+    def render_codeblock(lines_: list[str]) -> str:
+        rendered = []
+        for ln in lines_:
+            # preserve leading spaces (YAML etc.)
+            m = re.match(r'^(\s+)(.*)$', ln)
+            if m:
+                lead = '&nbsp;' * len(m.group(1))
+                rendered.append(lead + escape_html(m.group(2)))
+            else:
+                rendered.append(escape_html(ln))
+        inner = '<br/>'.join(rendered)
+        return f'<p style="{STYLES["p"]}"><code style="{STYLES["code"]}">{inner}</code></p>'
+
     for line in lines:
         stripped = line.strip()
+
+        # Fenced code blocks
+        if stripped.startswith("```"):
+            # toggle
+            if not in_codeblock:
+                close_lists()
+                if in_blockquote:
+                    html_lines.append("</blockquote>")
+                    in_blockquote = False
+                in_codeblock = True
+                code_lines = []
+            else:
+                # close and render
+                html_lines.append(render_codeblock(code_lines))
+                in_codeblock = False
+                code_lines = []
+            continue
+
+        if in_codeblock:
+            code_lines.append(line.rstrip("\n"))
+            continue
 
         # Blank line
         if not stripped:
