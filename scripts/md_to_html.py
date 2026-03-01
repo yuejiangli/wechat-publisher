@@ -203,6 +203,15 @@ def basic_md_to_html(md_text: str) -> str:
     return "\n".join(html_lines)
 
 
+def strip_empty_list_items(html: str) -> str:
+    """Remove empty list items that can render as blank bullets in WeChat."""
+    # Remove <li ...>   </li>
+    html = re.sub(r'<li\b[^>]*>\s*</li>', '', html)
+    # Remove <li ...><p ...>\s*</p></li>
+    html = re.sub(r'<li\b[^>]*>\s*<p\b[^>]*>\s*</p>\s*</li>', '', html)
+    return html
+
+
 def apply_image_map(html: str, image_map: dict) -> str:
     """Replace local image filenames with WeChat CDN URLs."""
     for local_name, wx_url in image_map.items():
@@ -235,6 +244,9 @@ def convert(md_path: str, image_map_path: str = None) -> str:
     if image_map_path:
         image_map = json.loads(Path(image_map_path).read_text())
         html = apply_image_map(html, image_map)
+
+    # Strip empty list items (prevents blank bullets in WeChat)
+    html = strip_empty_list_items(html)
 
     return html
 
