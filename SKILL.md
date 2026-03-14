@@ -9,7 +9,7 @@ Publish Markdown articles to WeChat Official Account draft box.
 
 ## Prerequisites
 
-1. `config.json` in the skill root (copy from `config.example.json`), or set env vars `WX_APPID` / `WX_APPSECRET`
+1. Create `config.json` in the skill root (copy from `config.example.json`), **or** set env vars `WX_APPID` / `WX_APPSECRET` (recommended for secrets).
 2. Python 3 available (`python3`)
 3. All scripts are in `scripts/` relative to this SKILL.md
 
